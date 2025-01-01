@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Calculatrice</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        #calculator {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        #display {
+            font-size: 2em;
+            text-align: right;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+        .button {
+            width: 100%;
+            padding: 20px;
+            font-size: 1.5em;
+            margin: 5px 0;
+        }
+        .button.operation {
+            background-color: #f0ad4e;
+            color: white;
+        }
+        .button.equal {
+            background-color: #5cb85c;
+            color: white;
+        }
+        .button.clear {
+            background-color: #d9534f;
+            color: white;
+        }
+        #error-section {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .error-button {
+            width: 100%;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="text-center my-4">Calculatrice</h1>
+    <div class="row">
+        <!-- Calculatrice à gauche -->
+        <div class="col-md-6">
+            <div id="calculator">
+                <!-- Affichage -->
+                <input type="text" id="display" readonly class="form-control">
+                <!-- Boutons des chiffres et opérations -->
+                <div class="row">
+                    <div class="col-3"><button class="button" onclick="addToDisplay('1')">1</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('2')">2</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('3')">3</button></div>
+                    <div class="col-3"><button class="button operation" onclick="addToDisplay('+')">+</button></div>
+                </div>
+                <div class="row">
+                    <div class="col-3"><button class="button" onclick="addToDisplay('4')">4</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('5')">5</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('6')">6</button></div>
+                    <div class="col-3"><button class="button operation" onclick="addToDisplay('-')">-</button></div>
+                </div>
+                <div class="row">
+                    <div class="col-3"><button class="button" onclick="addToDisplay('7')">7</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('8')">8</button></div>
+                    <div class="col-3"><button class="button" onclick="addToDisplay('9')">9</button></div>
+                    <div class="col-3"><button class="button operation" onclick="addToDisplay('*')">*</button></div>
+                </div>
+                <div class="row">
+                    <div class="col-3"><button class="button" onclick="addToDisplay('0')">0</button></div>
+                    <div class="col-3"><button class="button clear" onclick="clearDisplay()">C</button></div>
+                    <div class="col-3"><button class="button equal" onclick="calculate()">=</button></div>
+                    <div class="col-3"><button class="button operation" onclick="addToDisplay('/')">/</button></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section des erreurs à droite -->
+        <div class="col-md-6">
+            <div id="error-section">
+                <h2 class="text-center">Erreurs: </h2>
+                <div id="error" style="display: none;">
+                    <p class="text-center" style="color: red;"><span id="error-message"></span></p>
+                </div>
+                <!-- Boutons sous la section des erreurs -->
+                <button class="btn btn-primary error-button" >Ajouter Plugin</button>
+                <button class="btn btn-danger error-button" >Supprimer Plugin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS (optionnel, si vous avez besoin de fonctionnalités JS de Bootstrap) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function addToDisplay(value) {
+        const display = document.getElementById('display');
+        display.value += value;
+    }
+
+    function clearDisplay() {
+        const display = document.getElementById('display');
+        display.value = '';
+        hideError();
+    }
+
+    function calculate() {
+        const display = document.getElementById('display');
+        const expression = display.value;
+
+        // Extraire number1, number2 et operation de l'expression
+        const regex = /(\d+)\s*([+\-*/])\s*(\d+)/;
+        const match = expression.match(regex);
+
+        if (!match) {
+            showError("Expression invalide");
+            return;
+        }
+
+        const number1 = parseFloat(match[1]);
+        const operation = match[2];
+        const number2 = parseFloat(match[3]);
+
+        // Afficher les valeurs extraites dans la console
+        console.log("number1:", number1);
+        console.log("number2:", number2);
+        console.log("operation:", operation);
+
+        // Encoder les données avec URLSearchParams
+        const params = new URLSearchParams();
+        params.append('number1', number1);
+        params.append('number2', number2);
+        params.append('operation', operation);
+
+        // Envoyer une requête AJAX au serveur
+        fetch('/calculator/calculate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: params
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Erreur réseau : " + response.statusText);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.result !== undefined) {
+                    display.value = data.result; // Afficher le résultat dans l'input
+                    hideError();
+                } else if (data.error) {
+                    showError(data.error); // Afficher l'erreur
+                }
+            })
+            .catch(error => {
+                showError("Une erreur s'est produite lors du calcul : " + error.message);
+            });
+    }
+    function showError(message) {
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.textContent = message;
+        errorDiv.style.display = 'block';
+    }
+
+    function hideError() {
+        const errorDiv = document.getElementById('error');
+        errorDiv.style.display = 'none';
+    }
+
+    // Fonctions pour les boutons sous la section des erreurs
+    function handleButton1() {
+        alert("Bouton 1 cliqué !");
+    }
+
+    function handleButton2() {
+        alert("Bouton 2 cliqué !");
+    }
+</script>
+</body>
+</html>
